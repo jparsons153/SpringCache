@@ -3,6 +3,9 @@ package com.jparsons.cacheDemo.controllers;
 import com.jparsons.cacheDemo.models.Employee;
 import com.jparsons.cacheDemo.services.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,15 +30,19 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getAllEmployees());
     }
 
-    // Mapping to find an Employee from the Repository via Employee ID
+    // @Cacheable is used here to ensure that the return value of this method is stored into a cache named "employees"
+    // Next time this method is called with the same parameters, it will be skipped and simply return the value from cache
     @GetMapping("employees/{employeeId}")
+    @Cacheable(value = "employees", key = "#employeeId", condition = "#employeeId > 50")
     public Employee findEmployeeById(@PathVariable(value = "employeeId") Integer employeeId) {
         System.out.println("Employee fetching from database:: " + employeeId);
         return employeeService.getEmployee(employeeId);
     }
 
-    // Mapping to update an existing Employee in the Repository
+    // Here you can update the cache by using @CachePut
+    // This makes sure the method is run and updates the value each time
     @PutMapping("employees/{employeeId}")
+    @CachePut(value = "employees", key = "#employeeId")
     public Employee updateEmployee(@PathVariable(value = "employeeId") Integer employeeId,
                                    @RequestBody Employee employeeDetails) {
         Employee employee = employeeService.getEmployee(employeeId);
@@ -43,8 +50,9 @@ public class EmployeeController {
         return employeeService.saveEmployee(employee);
     }
 
-    // Mapping to delete an Employee from the Repository via Employee ID
+    // This @CacheEvict clears the entire "employees" cache
     @DeleteMapping("employees/{id}")
+    @CacheEvict(value = "employees", allEntries = true)
     public void deleteEmployee(@PathVariable(value = "id") Integer employeeId) {
         employeeService.deleteEmployee(employeeId);
     }
